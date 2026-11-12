@@ -957,7 +957,8 @@ $('#file-import').onchange = e => {
 };
 $('#btn-reset').onclick = async () => { if (!confirm('Apagar todas as peças, insumos e configurações em TODOS os aparelhos?')) return; try{ await api('pecas?id=neq.__', {method:'DELETE'}); await api('ajustes?id=neq.__', {method:'DELETE'}); }catch(e){ alert('Não consegui apagar na nuvem. Confira a conexão.'); return; } nuvemPronta = false; ['naninhas-v1','naninhas-v2',KEY].forEach(k=>localStorage.removeItem(k)); location.reload(); };
 
-/* exemplo inicial */
+/* exemplos iniciais: só entram quando não há nada nem aqui nem na nuvem */
+function semearExemplos(){
 if (!state.products.length){
   const ex = newProduct();
   Object.assign(ex, { nome:'Naninha Ursinho', sku:'NAN-001', qtd:'0,90', custoUnit:38, rende:7, fibraG:30, bordado:'3,50', horasTurno:8, pessoas:2, rendeMO:30, valorHora:25, preco:'72,00', comissaoPct:0, embalagem:0 });
@@ -1019,6 +1020,7 @@ if (!state.pessoasConferidas){
   ajustadas.forEach(p => { p.pessoas = '2'; });
   state.pessoasConferidas = true; save();
   if (ajustadas.length) setTimeout(() => toast(`Mão de obra conferida: ${ajustadas.map(p => p.nome).join(', ')} passou para 2 pessoas`), 600);
+}
 }
 render();
 
@@ -1092,7 +1094,7 @@ function aplicar(cloud){
   render(); window.scrollTo(0, sc); if (foco) document.getElementById(foco)?.focus();
 }
 async function sincronizarInicial(){
-  if (!chave && !pedirChave()) { syncStatus('Sem código de acesso · só neste aparelho', 'err'); return; }
+  if (!chave && !pedirChave()) { semearExemplos(); render(); syncStatus('Sem código de acesso · só neste aparelho', 'err'); return; }
   syncStatus('Conectando…', 'busy');
   try {
     const cloud = await pull();
@@ -1109,6 +1111,7 @@ async function sincronizarInicial(){
     }
     // nuvem vazia (ou código errado): tenta gravar a configuração; se o código estiver errado, dá erro aqui
     await api('ajustes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ id: 'config', dados: state.config }]) });
+    if (!state.products.length) { semearExemplos(); render(); }
     const nomes = state.products.map(p => p.nome).join(', ');
     if (!confirm(`A nuvem ainda está vazia. Enviar as ${state.products.length} peças deste aparelho para a nuvem?\n\n${nomes}\n\nSe o cadastro completo está em outro navegador, clique em Cancelar e abra a página lá.`)) {
       recusouEnvio = true; syncStatus('Nuvem vazia · abra no navegador que tem o cadastro', 'err'); return;
