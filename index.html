@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Naninhas · Gestão</title>
+<style>
+  :root{
+    --bg:#faf6f1; --card:#ffffff; --ink:#2b2522; --muted:#8a7f78; --line:#ebe3da;
+    --accent:#c9786f; --accent-ink:#fff; --soft:#f6ece6; --ok:#3f8a62; --warn:#c88a2e; --bad:#c0504d;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:18px;padding:16px 24px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px}
+  header h1 span{color:var(--accent)}
+  nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  nav button{border:1px solid transparent;background:transparent;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:14px}
+  nav button.active{background:var(--soft);color:var(--ink);border-color:var(--line)}
+  main{max-width:1180px;margin:0 auto;padding:22px 16px 60px}
+  .tab{display:none}.tab.active{display:block}
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:18px}
+  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h2{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+  .btn{border:none;background:var(--accent);color:var(--accent-ink);padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px}
+  .btn.ghost{background:var(--soft);color:var(--ink)}
+  .btn.danger{background:transparent;color:var(--bad);border:1px solid var(--line)}
+  .btn.small{padding:7px 10px;font-size:13px}
+  .btn.x{background:transparent;color:var(--muted);padding:4px 8px;font-size:16px;line-height:1}
+  .list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .item:hover{background:var(--soft)}
+  .item.sel{border-color:var(--accent);background:var(--soft)}
+  .item .n{font-weight:600}
+  .item .sku{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.04em}
+  .item .s{font-size:12px;color:var(--muted)}
+  .item .m{font-weight:700;font-size:13px;text-align:right;white-space:nowrap}
+  .item .m small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+  .item{flex-wrap:wrap}
+  .item .acoes{flex-basis:100%;display:flex;justify-content:flex-end;gap:2px;margin:-4px -6px -6px 0}
+  .item .acoes button{background:none;border:0;padding:4px;border-radius:6px;cursor:pointer;color:var(--muted);opacity:.5;line-height:0}
+  .item .acoes button:hover{opacity:1;background:rgba(0,0,0,.05)}
+  .item .acoes button.del:hover{color:#b3423f}
+  .item .acoes svg{width:15px;height:15px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--muted);padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip.alt.on{background:#3d5a80;border-color:#3d5a80}
+  /* canal de venda: venda direta = rosé, distribuidor = azul */
+  .item.vd{border-left:5px solid var(--accent)}
+  .item.dist{border-left:5px solid #3d5a80;background:#f3f6fa}
+  .item.dist.sel{border-color:#3d5a80;background:#e8eef6}
+  .badge{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700}
+  .badge.vd{background:var(--soft);color:var(--accent)}
+  .badge.dist{background:#e8eef6;color:#3d5a80}
+  select.canal-vd{background-color:var(--soft);color:var(--accent);font-weight:700}
+  select.canal-dist{background-color:#e8eef6;color:#3d5a80;font-weight:700}
+  tr.dist td{background:#f3f6fa}
+  .empty{color:var(--muted);font-size:14px;padding:20px 8px;text-align:center}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 18px;align-items:start}
+  label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:2px solid #e9c6c0;border-color:var(--accent)}
+  select{appearance:none;-webkit-appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a7f78' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+  /* campo com unidade acoplada (0,90 | metro) */
+  .group{display:flex;border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}
+  .group:focus-within{outline:2px solid #e9c6c0;border-color:var(--accent)}
+  .group input{border:0;border-radius:0;flex:1;min-width:0}
+  .group input:focus{outline:none}
+  .group select{border:0;border-radius:0;border-left:1px solid var(--line);background-color:var(--soft);width:auto;font-weight:600;color:var(--muted);padding-left:12px}
+  .group select:focus{outline:none}
+  .group .pre{padding:10px 0 10px 12px;color:var(--muted);font-weight:700;background:#fff;display:flex;align-items:center}
+  .group.money input{padding-left:6px}
+  .group .suf{padding:10px 12px;color:var(--muted);font-weight:600;border-left:1px solid var(--line);background:var(--soft);display:flex;align-items:center;white-space:nowrap}
+  .group.money input,.group .suf{min-width:0}
+  table .group{min-width:0}
+  .ro{padding:9px 12px;border:1px dashed var(--line);border-radius:9px;background:var(--soft);font-weight:700}
+  .section{margin-top:24px}
+  .section h3{margin:0 0 4px;font-size:16px}
+  .section .desc{font-size:13px;color:var(--muted);margin:0 0 12px}
+  .hint{font-size:13px;color:var(--muted);margin-top:6px}
+  .total{margin-top:14px;padding:10px 12px;background:var(--soft);border-radius:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:600}
+  .total.sum{background:var(--ink);color:#fff}
+  .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+  .canais{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .conta{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+  .conta h4{margin:0;font-size:15px}
+  .conta .sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .conta .preco{font-size:26px;font-weight:700;margin:4px 0 10px}
+  .ln{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px dashed var(--line);font-size:14px}
+  .ln .k{color:var(--muted)}
+  .ln .v{font-weight:600;white-space:nowrap}
+  .ln .v small{font-weight:500;color:var(--muted);margin-left:4px}
+  .ln.res{border-top:2px solid var(--line);font-size:15px}
+  .ln.res .k{color:var(--ink);font-weight:700}
+  .ln.res .v{font-weight:800}
+  .custo-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+  .cb{background:var(--soft);border-radius:10px;padding:10px 12px}
+  .cb .l{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  .cb .v{font-size:20px;font-weight:700;margin-top:2px}
+  .cb .s{font-size:12px;color:var(--muted)}
+  .cb.destaque{background:var(--ink);color:#fff}.cb.destaque .l,.cb.destaque .s{color:#d9cfc8}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  td small{color:var(--muted)}
+  tr.draft td{opacity:.75}
+  .tag{display:inline-block;background:#fbe5e3;color:#9a3b38;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700}
+  th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+  /* resumo: títulos em 2 linhas e colunas apertadas para caber numa tela só */
+  #resumo th{white-space:normal;line-height:1.3;vertical-align:bottom;padding:8px 6px}
+  #resumo td{padding:8px 6px}
+  #resumo{font-size:13px}
+  #resumo td:first-child{white-space:normal}
+  #resumo .pph{display:inline-flex;gap:10px;align-items:flex-start}
+  #resumo .pph>span{display:flex;flex-direction:column;align-items:flex-end;color:var(--muted)}
+  #resumo .pph small{font-size:10px}
+  #resumo .pph .dupla{color:var(--ink);font-weight:700;font-size:15px;background:var(--soft);border-radius:6px;padding:1px 6px}
+  th.sortable:hover{color:var(--ink)}
+  th.sortable.on{color:var(--accent)}
+  th .arrow{margin-left:5px;font-size:10px;opacity:.6}
+  th.sortable.on .arrow{opacity:1}
+  table input{padding:7px 9px}
+  td.nome{text-align:left}
+  /* insumos: colunas de número enxutas, nome e anotação ocupam o resto */
+  #insumos{table-layout:fixed}
+  #insumos th:nth-child(2){width:150px}
+  #insumos th:nth-child(3){width:180px}
+  #insumos th:nth-child(4){width:105px}
+  #insumos th:nth-child(6){width:44px}
+  #insumos td,#insumos th{padding:9px 6px}
+  #insumos input{font-size:15px}
+  tr.soma td{font-weight:700;border-top:2px solid var(--line)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .big-name{font-size:18px;font-weight:700;border:none;border-bottom:2px solid var(--line);border-radius:0;padding:6px 0}
+  .big-name:focus{outline:none;border-color:var(--accent)}
+  .head{display:grid;grid-template-columns:1fr 200px;gap:14px;align-items:end}
+  .head.three{grid-template-columns:1fr 220px 180px}
+  .head.four{grid-template-columns:1fr 190px 170px 150px}
+  @media (max-width:900px){.head,.head.three,.head.four{grid-template-columns:1fr 1fr}}
+  @media (max-width:600px){.head,.head.three,.head.four{grid-template-columns:1fr}}
+  /* blocos: matéria-prima × mão de obra */
+  .bloco{border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;padding:16px 18px;margin-top:20px;background:#fff}
+  .bloco.mo{border-left-color:#7a9cc6}
+  .bloco.precos{border-left-color:var(--ink)}
+  .bloco>.tit{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 6px}
+  .bloco>.tit h3{margin:0;font-size:17px;text-transform:uppercase;letter-spacing:.06em}
+  .bloco .section{margin-top:14px}
+  .bloco .section h3{font-size:14px;color:var(--muted);font-weight:700}
+  .bloco .section .sh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .bloco .section .sh h3{margin:0}
+  .bloco .section .sh .chk{font-size:12px}
+  .bloco .section .sh .chk input{width:17px;height:17px}
+  .section.off .grid,.section.off .total{opacity:.4}
+  .section.off .sh h3{text-decoration:line-through;opacity:.6}
+  .bloco .total.sum{margin-top:16px;font-size:16px}
+  .total.sum.mo{background:#3d5a80}
+  .sumbox{margin-top:14px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:2px 14px}
+  .sumbox.mo{background:#eef3f8;border-color:#d6e1ec}
+  .sumbox .r{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px;color:var(--muted)}
+  .sumbox .r span:last-child{text-align:right}
+  .sumbox .r:last-child{border-bottom:0}
+  .sumbox .r.tot{font-size:15px;font-weight:700;color:var(--ink);padding:9px 0 8px;border-top:1px solid var(--line)}
+  .sumbox.mo .r{border-color:#d6e1ec}.sumbox.mo .r.tot{border-top-color:#c3d2e2}
+  .custo-box.six{grid-template-columns:repeat(3,1fr)}
+  @media (max-width:700px){.custo-box.six{grid-template-columns:repeat(2,1fr)}}
+  .custo-box.six .cb{min-height:92px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+  .custo-box.six .cb .v{margin-top:0}
+  .custo-box.six .cb .group{background:#fff}
+  .custo-box.six .cb.destaque .group{border-color:#5a4f4a}
+  .custo-box.six .cb.destaque .group input{font-weight:700}
+  .simq{margin-top:20px;padding:16px 18px;border-radius:12px;background:#eef6f1;border:1px solid #cfe3d7;border-left:5px solid var(--ok)}
+  .simq .tit{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .simq .tit h3{margin:0;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#2f6b4c}
+  .simq label{color:#2f6b4c}
+  .simq .group{border-color:#b9d6c6}
+  .simq .group .suf{background:#dcebe2;border-left-color:#b9d6c6;color:#2f6b4c}
+  .simq .group:focus-within{outline-color:#bfe0cd;border-color:var(--ok)}
+  .simq input{font-size:18px;font-weight:700}
+  .simcards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+  @media (max-width:700px){.simcards{grid-template-columns:1fr}}
+  .sc{background:#fff;border:1px solid #cfe3d7;border-radius:12px;padding:14px 16px}
+  .sc .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#2f6b4c;font-weight:700}
+  .sc .v{font-size:26px;font-weight:800;margin-top:4px;color:#1f3f2e}
+  .sc .s{font-size:12px;color:var(--muted);margin-top:4px}
+  .sc .s.lines{display:grid;gap:2px;margin-top:6px}
+  .sc .s.lines>span{display:flex;justify-content:space-between;gap:10px}
+  .sc .s.lines>span>span:last-child{font-weight:600;color:var(--ink)}
+  .prod{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;background:#fff;border:1px solid #cfe3d7;border-radius:12px;padding:14px 16px}
+  @media (max-width:700px){.prod{grid-template-columns:1fr}}
+  .prod .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#2f6b4c;font-weight:700;margin-bottom:6px}
+  .prod .row2{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);padding:3px 0}
+  .prod .row2 b{color:var(--ink);white-space:nowrap}
+  .pstatus{border-radius:10px;padding:12px 16px;font-weight:800;font-size:16px;text-align:center;min-width:220px}
+  .pstatus small{display:block;font-weight:500;font-size:12px;margin-top:3px;opacity:.85}
+  .pstatus small.mais{margin-top:8px;padding-top:8px;border-top:1px solid rgba(31,90,60,.2);opacity:1}
+  .prod.ok .pstatus{background:#dff0e6;color:#1f5a3c}
+  .prod.no{border-color:#f0c9c7}
+  .prod.no .pstatus{background:#fbe5e3;color:#9a3b38}
+  .sc.destaque{background:var(--ok);border-color:var(--ok)}
+  .sc.destaque .l,.sc.destaque .s{color:#dff0e6}
+  .sc.destaque .v{color:#fff}
+  .sumbox.res{margin-top:16px;background:#fff}
+  .sumbox .r small{font-weight:600;color:var(--muted);font-size:12px;margin-left:4px}
+  .sumbox .r.tot.big{font-size:18px;padding:12px 0}
+  .grand{margin-top:20px;padding:16px 18px;border-radius:12px;background:var(--ink);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .grand .l{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#d9cfc8;font-weight:700}
+  .grand .eq{font-size:15px;color:#d9cfc8;margin-top:2px}
+  .grand .v{font-size:28px;font-weight:800}
+  .ins-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;padding:10px 12px;border:1px dashed var(--line);border-radius:9px;background:var(--soft)}
+  .ins{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin:0;color:var(--ink);font-weight:500}
+  .ins input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
+  .ins .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ins .vl{font-weight:700;font-size:12px}
+  .ins.off{opacity:.45;text-decoration:line-through}
+  table.extras{table-layout:fixed;margin-top:4px}
+  table.extras td{padding:5px 4px;border-bottom:0}
+  table.extras td:nth-child(1){width:auto}
+  table.extras td:nth-child(2){width:150px}
+  table.extras td:nth-child(3){width:150px}
+  table.extras td:nth-child(4){width:90px;text-align:right}
+  table.extras td:nth-child(5){width:36px}
+  .bloco.precos .grid{align-items:end}
+  .sim{margin-top:18px;padding-top:16px;border-top:1px dashed var(--line)}
+  .sim .grid{align-items:start}
+  .simres{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .simres .cb .v{font-size:18px}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;user-select:none;margin:0}
+  .chk input{width:20px;height:20px;margin:0;accent-color:var(--accent);cursor:pointer}
+  .bloco.mo .chk input{accent-color:#7a9cc6}
+  .bloco.off{opacity:.45}
+  .bloco.off .tit{opacity:1}
+  .grand .eq s{opacity:.55}
+  /* bloco mão de obra em tons de azul */
+  .bloco.mo .group{border-color:#d6e1ec}
+  .bloco.mo .group .suf{background:#eef3f8;border-left-color:#d6e1ec;color:#4a6a8f}
+  .bloco.mo .group .pre{color:#4a6a8f}
+  .bloco.mo label,.bloco.mo .tit .hint{color:#5d7693}
+  .bloco.mo input{border-color:#d6e1ec}
+  .bloco.mo .group:focus-within,.bloco.mo input:focus{outline-color:#c9d9ea;border-color:#7a9cc6}
+  .legenda{font-size:13px;color:var(--muted);margin-top:14px;line-height:1.6}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1}
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:30}
+  .dupcard{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%) scale(.8);background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 30px;text-align:center;box-shadow:0 20px 60px rgba(43,37,34,.22);z-index:31;pointer-events:none;opacity:0;transition:opacity .25s,transform .35s cubic-bezier(.2,1.4,.4,1)}
+  .dupcard.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .dupcard .t{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-weight:700}
+  .dupcard .n{font-size:24px;font-weight:800;margin-top:4px}
+  .dupcard .s{font-size:13px;color:var(--muted);margin-top:4px}
+  .dupcard.del{border:2px solid var(--bad);padding:26px 40px}
+  .dupcard.del .t{color:var(--bad)}
+  .dupcard.del .ico{font-size:40px;line-height:1;margin-bottom:6px}
+  .dim{position:fixed;inset:0;background:rgba(43,37,34,.28);z-index:30;opacity:0;transition:opacity .25s;pointer-events:none}
+  .dim.show{opacity:1}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧸 Nani<span>nhas</span></h1>
+  <nav>
+    <button data-tab="gastos" class="active">Gastos</button>
+    <button data-tab="insumos">Insumos</button>
+    <button data-tab="resumo">Resumo</button>
+    <button data-tab="config">Configurações</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= GASTOS ================= -->
+  <section id="tab-gastos" class="tab active">
+    <div class="layout">
+      <aside class="card">
+        <div class="row">
+          <h2 style="margin:0">Peças</h2>
+          <button class="btn small" id="btn-new">+ Nova</button>
+        </div>
+        <div class="list" id="list"></div>
+      </aside>
+      <div id="editor"></div>
+    </div>
+  </section>
+
+  <!-- ================= INSUMOS ================= -->
+  <section id="tab-insumos" class="tab">
+    <div class="card">
+      <h2>Linhas, botões e outros insumos que servem para todas as naninhas</h2>
+      <p class="desc" style="color:var(--muted);font-size:13px;margin:0 0 12px">Informe <b>quanto você paga</b> pelo pacote (cone, rolo, caixa, jogo) e <b>quantas naninhas ele rende</b>. O custo por naninha sai sozinho e entra em todas as peças.</p>
+      <div style="overflow:auto"><table id="insumos"></table></div>
+      <div class="toolbar"><button class="btn ghost small" id="btn-insumo">+ Adicionar insumo</button></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Fibra (enchimento)</h2>
+      <div class="grid">
+        <div><label>Preço do kg da fibra</label><div class="group money"><span class="pre">R$</span><input type="text" inputmode="decimal" id="cfg-fibraKg" data-money></div><div class="hint">Em cada naninha você informa quantos gramas usa (ex.: 30 g).</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RESUMO ================= -->
+  <section id="tab-resumo" class="tab">
+    <div class="card">
+      <h2>Resumo de todas as peças</h2>
+      <div id="resumo-chips" style="margin-bottom:10px"></div>
+      <div style="overflow:auto"><table id="resumo"></table></div>
+    </div>
+  </section>
+
+  <!-- ================= CONFIG ================= -->
+  <section id="tab-config" class="tab">
+    <div class="card">
+      <h2>Padrões usados em todas as naninhas</h2>
+      <div class="grid">
+        <div><label>Quanto vale a sua hora de trabalho</label><div class="group money"><span class="pre">R$</span><input type="text" inputmode="decimal" id="cfg-valorHora" data-money></div><div class="hint">Vai preenchido em cada naninha nova. Pode mudar peça por peça.</div></div>
+        <div><label>Bordado padrão por naninha</label><div class="group money"><span class="pre">R$</span><input type="text" inputmode="decimal" id="cfg-bordado" data-money></div></div>
+        <div><label>Comissão padrão</label><div class="group"><input type="text" inputmode="decimal" id="cfg-comissaoPct"><span class="suf">% do preço</span></div></div>
+        <div><label>Horas de trabalho por mês (por pessoa)</label><div class="group"><input type="text" inputmode="decimal" id="cfg-horasMes"><span class="suf">h/mês</span></div><div class="hint">Usado na simulação de venda para ver se a produção cabe no mês.</div></div>
+        <div><label>Embalagem padrão por naninha</label><div class="group money"><span class="pre">R$</span><input type="text" inputmode="decimal" id="cfg-embalagem" data-money></div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>Dados</h2>
+      <div class="toolbar">
+        <button class="btn ghost" id="btn-export">Exportar backup (.json)</button>
+        <label class="btn ghost" style="display:inline-block">Importar backup <input type="file" id="file-import" accept="application/json" style="display:none"></label>
+        <button class="btn danger" id="btn-reset">Apagar tudo</button>
+      </div>
+      <div class="hint" style="margin-top:8px">Os dados ficam salvos neste navegador. Exporte um backup de vez em quando.</div>
+    </div>
+  </section>
+
+  <footer>Protótipo local · Naninhas</footer>
+</main>
+
+<script>
+/* ---------- estado ---------- */
+const KEY = 'naninhas-v3';
+const defaultConfig = { valorHora: 25, fibraKg: 22, bordado: 3.5, comissaoPct: 0, embalagem: 0, horasMes: 160 };
+const defaultInsumos = () => [
+  { id:'i1', nome:'Linha colorida (jogo de 3 cones)', custo:60,   rende:250, obs:'3 cones × R$ 20 fazem 250 naninhas' },
+  { id:'i2', nome:'Linha preta (1 cone)',             custo:37,   rende:750, obs:'1 cone preto a cada 9 coloridos = 3 jogos = 750 naninhas' },
+  { id:'i3', nome:'Linha reta (2 rolos/mês)',         custo:15.8, rende:500, obs:'2 × R$ 7,90 fazem ~500 por mês' },
+  { id:'i4', nome:'Linha over (2 rolos/mês)',         custo:15.8, rende:500, obs:'igual à reta' },
+  { id:'i5', nome:'Botão de pressão (caixinha)',      custo:33,   rende:200, obs:'' },
+];
+let state = load();
+let sortBy = { key: 'totalHora', dir: -1 };   // resumo abre pela última coluna, do maior para o menor
+const CATEGORIAS = ['Naninha','Dado','Travesseiro','Toalha de boca','Prendedor de chupeta','Babeiro','Kit touca','Outro'];
+let filtroCat = 'Todas';
+const CANAIS = ['Venda direta','Distribuidor'];
+let filtroCanal = 'Todos';
+// molde de cada categoria: quais blocos de matéria-prima aparecem e quais insumos compartilhados ficam desligados por padrão
+const TPL = {
+  'Naninha':              { blocos:['tecido','fibra','bordado'],      insumosOff:[] },
+  'Dado':                 { blocos:['tecido','sublimacao','fibra','guizo'],   insumosOff:['i5'] },   // sem botão de pressão
+  'Travesseiro':          { blocos:['tecido','sublimacao','fibra'],   insumosOff:['i5'] },   // igual ao dado, sem guizo
+  'Toalha de boca':       { blocos:['tecido','tecido2'],              insumosOff:['i5'], rotulos:{ tecido:'Tecido estampado', tecido2:'Tecido fralda' } },
+  'Prendedor de chupeta': { blocos:['tecido'],                        insumosOff:[] },
+  'Babeiro':              { blocos:['tecido','tecido2'],              insumosOff:[], rotulos:{ tecido:'Tecido estampado', tecido2:'Tecido liso' } },
+  'Kit touca':            { blocos:['tecido'],                        insumosOff:['i5'] },
+  'Outro':                { blocos:['tecido','tecido2','sublimacao','fibra','guizo','bordado'], insumosOff:[], rotulos:{ tecido2:'Tecido 2 (forro)' } },
+};
+const tpl = p => TPL[p.categoria] || TPL['Outro'];
+const temBloco = (p, b) => tpl(p).blocos.includes(b);
+const rotulo = (p, b, padrao) => (tpl(p).rotulos||{})[b] || padrao;
+
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem('naninhas-v2') || localStorage.getItem('naninhas-v1'));
+    if (s && s.products) {
+      s.config = Object.assign({}, defaultConfig, s.config||{});
+      if (!Array.isArray(s.insumos)) s.insumos = defaultInsumos();
+      s.products.forEach(p => {
+        if (p.sku===undefined) p.sku='';
+        if (!p.categoria) p.categoria='Naninha';
+        if (!p.canal) p.canal='Venda direta';
+        if (p.categoria==='Paninho de boca') p.categoria='Toalha de boca';
+        if (!Array.isArray(p.extras)) p.extras=[];
+        if (!Array.isArray(p.insumosOff)) p.insumosOff = (TPL[p.categoria]||TPL.Outro).insumosOff.slice();
+        if (p.subCusto===undefined) p.subCusto='';
+        if (p.qtd2===undefined){ p.unidade2='m'; p.qtd2=''; p.custoUnit2=''; p.rende2=''; }
+        if (p.subRende===undefined) p.subRende='';
+        if (p.tinta===undefined) p.tinta='';
+        if (p.guizoCusto===undefined) p.guizoCusto='';
+        if (p.guizoQtd===undefined) p.guizoQtd='';
+        if (p.fibraKg===undefined) p.fibraKg='';
+        if (p.usaMaterial===undefined) p.usaMaterial=true;
+        if (p.usaMO===undefined) p.usaMO=true;
+        for (const k of ['usaTecido','usaTecido2','usaSublim','usaTinta','usaFibra','usaBordado','usaGuizo']) if (p[k]===undefined) p[k]=true;
+        if (p.rende===undefined) p.rende=1;
+        if (p.fibraG===undefined) p.fibraG=30;
+        if (p.horasTurno===undefined) { // migração do campo antigo "tempo em minutos"
+          const min = parseFloat(String(p.tempoMin??'').replace(',','.'));
+          if (isFinite(min) && min>0) { p.horasTurno = min/60; p.pessoas = 1; p.rendeMO = 1; }
+          else { p.horasTurno = 8; p.pessoas = 2; p.rendeMO = 30; }
+          delete p.tempoMin;
+        }
+        if (p.comissaoPct===undefined) p.comissaoPct = s.config.comissaoPct;
+        if (p.embalagem===undefined) p.embalagem = s.config.embalagem;
+        if (p.simQtd===undefined) p.simQtd='';
+        if (p.simPessoas===undefined) p.simPessoas='';
+        if (p.bordado===undefined || p.bordado===0) p.bordado = s.config.bordado;
+      });
+      return s;
+    }
+  }catch(e){}
+  return { products: [], insumos: defaultInsumos(), config: {...defaultConfig}, selectedId: null };
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+
+function newProduct(){
+  // nova naninha começa em branco; "Duplicar" copia os dados da naninha atual
+  return {
+    id: uid(), nome: 'Nova peça', sku: '', categoria: 'Naninha', canal: 'Venda direta', extras: [], insumosOff: [],
+    subCusto: '', subRende: '', tinta: '', guizoCusto: '', guizoQtd: '', fibraKg: '',
+    unidade: 'm', qtd: '', custoUnit: '', rende: '',
+    unidade2: 'm', qtd2: '', custoUnit2: '', rende2: '',
+    fibraG: '', bordado: '',
+    horasTurno: '', pessoas: '', rendeMO: '', valorHora: '',
+    preco: '', comissaoPct: '', embalagem: '', simQtd: '', simPessoas: '',
+    usaMaterial: true, usaMO: true,
+    usaTecido: true, usaSublim: true, usaTinta: true, usaFibra: true, usaBordado: true, usaGuizo: true, usaTecido2: true
+  };
+}
+
+/* ---------- cálculos ---------- */
+const num = v => { const n = parseFloat(String(v??'').replace(',', '.')); return isFinite(n) ? n : 0; };
+const isBlank = v => v===null || v===undefined || v==='';
+const insumoUnit = i => num(i.rende) > 0 ? num(i.custo)/num(i.rende) : 0;
+const insumosPorNaninha = () => state.insumos.reduce((s,i) => s + insumoUnit(i), 0);
+
+function calc(p, cfg){
+  const rende    = Math.max(num(p.rende), 1);
+  const corte    = num(p.qtd) * num(p.custoUnit);   // o pedaço comprado
+  const tecido   = corte / rende;                   // tecido por naninha
+  const rende2   = Math.max(num(p.rende2), 1);
+  const corte2   = num(p.qtd2) * num(p.custoUnit2);
+  const tecido2  = temBloco(p,'tecido2') ? corte2 / rende2 : 0;
+  const fibraKg  = isBlank(p.fibraKg) ? num(cfg.fibraKg) : num(p.fibraKg);     // preço do kg: da peça ou o padrão
+  const fibra    = temBloco(p,'fibra')   ? num(p.fibraG)/1000 * fibraKg : 0;
+  const sublim   = temBloco(p,'sublimacao') ? insumoUnit({custo:p.subCusto, rende:p.subRende}) : 0;
+  const tinta    = temBloco(p,'sublimacao') ? num(p.tinta) : 0;
+  const bordado  = temBloco(p,'bordado') ? num(p.bordado) : 0;
+  const guizo    = temBloco(p,'guizo') ? num(p.guizoCusto) * (isBlank(p.guizoQtd) ? 1 : num(p.guizoQtd)) : 0;
+  const on = k => p[k] !== false;   // checkbox da subcategoria (fornecedor fornece → desmarca)
+  const off      = p.insumosOff || [];
+  const insumos  = state.insumos.filter(i => !off.includes(i.id)).reduce((t,i) => t + insumoUnit(i), 0);
+  const extras   = (p.extras||[]).reduce((t,e) => t + insumoUnit(e), 0);   // materiais só desta peça
+  const material = (on('usaTecido')?tecido:0) + (on('usaTecido2')?tecido2:0) + (on('usaSublim')?sublim:0) + (on('usaTinta')?tinta:0) + (on('usaFibra')?fibra:0) + (on('usaBordado')?bordado:0) + (on('usaGuizo')?guizo:0) + insumos + extras;
+  const horasTot = num(p.horasTurno) * Math.max(num(p.pessoas), 1);   // horas de trabalho somadas
+  const rendeMO  = Math.max(num(p.rendeMO), 1);
+  const horas    = horasTot / rendeMO;                                 // horas por naninha
+  const minutos  = horas * 60;
+  const mo       = horas * num(p.valorHora);
+  const usaMaterial = p.usaMaterial!==false, usaMO = p.usaMO!==false;
+  const custo    = (usaMaterial ? material : 0) + (usaMO ? mo : 0);
+  const preco    = num(p.preco);
+  const margemBruta = preco - custo;
+  const comissao = preco * num(p.comissaoPct)/100;
+  const embalagem = num(p.embalagem);
+  const margemLiq = margemBruta - comissao - embalagem;
+
+  return { usaMaterial, usaMO, tecido, corte, rende, tecido2, corte2, rende2, fibraKg, fibra, sublim, tinta, bordado, guizo, insumos, extras, material, horasTot, rendeMO, horas, minutos, mo, custo,
+           preco, margemBruta, pctBruta: preco>0 ? margemBruta/preco : 0,
+           comissao, embalagem, margemLiq, pctLiq: preco>0 ? margemLiq/preco : 0 };
+}
+const fmtMoney = v => isBlank(v) ? '' : num(v).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+const money  = (f, v, extra='') => `<div class="group money"><span class="pre">R$</span><input type="text" inputmode="decimal" data-f="${f}" value="${fmtMoney(v)}" ${extra}></div>`;
+const unitIn = (f, v, suf, extra='') => `<div class="group"><input type="text" inputmode="decimal" data-f="${f}" value="${esc(v??'')}" ${extra}><span class="suf">${suf}</span></div>`;
+const fmtQtd = v => num(v).toLocaleString('pt-BR',{maximumFractionDigits:2});
+const brl  = v => (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const brl3 = brl; // sempre 2 casas (centavos)
+const pct  = v => ((v||0)*100).toLocaleString('pt-BR',{maximumFractionDigits:0})+'%';
+const mult = v => (v||0).toLocaleString('pt-BR',{maximumFractionDigits:2})+'x';
+const cls  = v => v>0.20 ? 'ok' : v>=0.10 ? 'warn' : 'bad';   // verde acima de 20%, amarelo 10–20%, vermelho abaixo de 10%
+const sgn  = v => v>0 ? 'ok' : v<0 ? 'bad' : '';   // verde positivo, vermelho negativo
+
+/* ---------- render ---------- */
+const $ = s => document.querySelector(s);
+const selected = () => state.products.find(p => p.id===state.selectedId);
+const esc = s => String(s??'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function catsEmUso(){ return CATEGORIAS.filter(c => state.products.some(p => p.categoria===c)); }
+function chipsHTML(){
+  const cats = catsEmUso();
+  const c1 = cats.length < 2 ? '' : `<div class="chips">${['Todas',...cats].map(c => `<button class="chip ${filtroCat===c?'on':''}" data-cat="${c}">${c}</button>`).join('')}</div>`;
+  const canais = CANAIS.filter(c => state.products.some(p => p.canal===c));
+  const c2 = canais.length < 2 ? '' : `<div class="chips">${['Todos',...canais].map(c => `<button class="chip alt ${filtroCanal===c?'on':''}" data-canal="${c}">${c}</button>`).join('')}</div>`;
+  return c1 + c2;
+}
+function bindChips(root, after){
+  root.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { filtroCat = b.dataset.cat; after(); });
+  root.querySelectorAll('[data-canal]').forEach(b => b.onclick = () => { filtroCanal = b.dataset.canal; after(); });
+}
+const passaFiltro = p => (filtroCat==='Todas' || p.categoria===filtroCat) && (filtroCanal==='Todos' || p.canal===filtroCanal);
+
+function renderList(){
+  const el = $('#list');
+  if (!state.products.length){ el.innerHTML = '<div class="empty">Nenhuma peça ainda.<br>Clique em “+ Nova”.</div>'; return; }
+  const vis = state.products.filter(passaFiltro);
+  el.innerHTML = chipsHTML() + vis.map(p => {
+    const c = calc(p, state.config);
+    return `<div class="item ${p.id===state.selectedId?'sel':''} ${p.canal==='Distribuidor'?'dist':'vd'}" data-id="${p.id}">
+      <div><div class="sku">${esc(p.categoria||'')}${p.sku?' · '+esc(p.sku):''} <span class="badge ${p.canal==='Distribuidor'?'dist':'vd'}">${esc(p.canal||'')}</span></div><div class="n">${esc(p.nome)}</div><div class="s">custa ${brl(c.custo)} · vende ${brl(c.preco)}</div></div>
+      <div class="m ${cls(c.pctLiq)}">${brl(c.margemLiq)}<small>margem líquida ${pct(c.pctLiq)}</small></div>
+      <div class="acoes">
+        <button data-dup="${p.id}" title="Duplicar" aria-label="Duplicar ${esc(p.nome)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button class="del" data-del="${p.id}" title="Excluir" aria-label="Excluir ${esc(p.nome)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+      </div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.item').forEach(i => i.onclick = () => { state.selectedId = i.dataset.id; save(); render(); });
+  el.querySelectorAll('[data-dup]').forEach(b => b.onclick = e => { e.stopPropagation(); const p = state.products.find(x => x.id===b.dataset.dup); if (p) duplicarPeca(p); });
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = e => { e.stopPropagation(); const p = state.products.find(x => x.id===b.dataset.del); if (p) excluirPeca(p); });
+  bindChips(el, () => { renderList(); renderResumo(); });
+}
+
+const subHead = (p, titulo, k) => `<div class="sh"><h3>${titulo}</h3><label class="chk"><input type="checkbox" data-sub="${k}" ${p[k]!==false?'checked':''}> somar no custo</label></div>`;
+const rowSub = (p, k, nome, v) => p[k]===false ? `<div class="r" style="opacity:.5"><span><s>${nome}</s> <small>fornecido, fora do custo</small></span><span><s>${brl(v)}</s></span></div>` : `<div class="r"><span>${nome}</span><span>${brl(v)}</span></div>`;
+// converte horas por pessoa em prazo: "1 mês e 7 dias úteis" (mês = horasMes, dia = 8 h)
+const prazo = (h, hMes) => {
+  const diasMes = Math.round(hMes/8), dias = Math.ceil(h/8);
+  const m = Math.floor(dias/diasMes), d = dias - m*diasMes;
+  if (m===0) return `${d} dias úteis`;
+  return `${m} ${m===1?'mês':'meses'}${d?` e ${d} ${d===1?'dia útil':'dias úteis'}`:''}`;
+};
+const subCls = (p, k) => p[k]===false ? 'off' : '';
+
+function renderEditor(){
+  const p = selected();
+  const el = $('#editor');
+  if (!p){ el.innerHTML = '<div class="card empty">Selecione ou crie uma naninha para calcular.</div>'; return; }
+  const c = calc(p, state.config);
+  const cfg = state.config;
+  const unidLabel = p.unidade==='kg' ? 'kg' : 'metro';
+  const off = p.insumosOff || [];
+  const listaInsumos = state.insumos.map(i => `${esc(i.nome.split(' (')[0])} ${brl3(insumoUnit(i))}`).join(' + ') || 'nenhum cadastrado';
+
+  el.innerHTML = `
+  <div class="card">
+    <div class="head four">
+      <div><input class="big-name" data-f="nome" value="${esc(p.nome)}"></div>
+      <div><label>Categoria</label><select data-f="categoria">${CATEGORIAS.map(c => `<option ${p.categoria===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div><label>Venda para</label><select data-f="canal" class="${p.canal==='Distribuidor'?'canal-dist':'canal-vd'}">${CANAIS.map(c => `<option ${p.canal===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div><label>SKU / referência</label><input data-f="sku" value="${esc(p.sku)}" style="text-transform:uppercase"></div>
+    </div>
+
+    <!-- ===== MATÉRIA-PRIMA ===== -->
+    <div class="bloco ${c.usaMaterial?'':'off'}">
+      <div class="tit"><h3>Matéria-prima</h3><label class="chk"><input type="checkbox" data-chk="usaMaterial" ${c.usaMaterial?'checked':''}> somar no custo</label></div>
+
+      <div class="section ${subCls(p,'usaTecido')}">
+        ${subHead(p, rotulo(p,'tecido','Tecido'), 'usaTecido')}
+        <div class="grid">
+          <div>
+            <label>Pedaço de tecido comprado</label>
+            <div class="group">
+              <input type="text" inputmode="decimal" data-f="qtd" value="${esc(p.qtd)}">
+              <select data-f="unidade"><option value="m" ${p.unidade==='m'?'selected':''}>metro</option><option value="kg" ${p.unidade==='kg'?'selected':''}>kg</option></select>
+            </div>
+          </div>
+          <div><label>Preço do ${unidLabel}</label>${money('custoUnit', p.custoUnit)}</div>
+          <div><label>Rende quantas peças?</label>${unitIn('rende', p.rende, 'peças')}</div>
+        </div>
+        <div class="total"><span>${rotulo(p,'tecido','Tecido')} por peça</span><span>${brl(c.tecido)}</span></div>
+      </div>
+
+      ${temBloco(p,'tecido2') ? `
+      <div class="section ${subCls(p,'usaTecido2')}">
+        ${subHead(p, rotulo(p,'tecido2','Tecido 2'), 'usaTecido2')}
+        <div class="grid">
+          <div>
+            <label>Pedaço de tecido comprado</label>
+            <div class="group">
+              <input type="text" inputmode="decimal" data-f="qtd2" value="${esc(p.qtd2)}">
+              <select data-f="unidade2"><option value="m" ${p.unidade2!=='kg'?'selected':''}>metro</option><option value="kg" ${p.unidade2==='kg'?'selected':''}>kg</option></select>
+            </div>
+          </div>
+          <div><label>Preço do ${p.unidade2==='kg'?'kg':'metro'}</label>${money('custoUnit2', p.custoUnit2)}</div>
+          <div><label>Rende quantas peças?</label>${unitIn('rende2', p.rende2, 'peças')}</div>
+        </div>
+        <div class="total"><span>${rotulo(p,'tecido2','Tecido 2')} por peça</span><span>${brl(c.tecido2)}</span></div>
+      </div>` : ''}
+
+      ${temBloco(p,'sublimacao') ? `
+      <div class="section ${subCls(p,'usaSublim')}">
+        ${subHead(p,'Sublimação','usaSublim')}
+        <div class="grid">
+          <div><label>Pacote de folhas A4 custa</label>${money('subCusto', p.subCusto)}</div>
+          <div><label>Rende quantas peças?</label>${unitIn('subRende', p.subRende, 'peças')}</div>
+        </div>
+        <div class="total"><span>Folha por peça</span><span>${brl(c.sublim)}</span></div>
+      </div>
+      <div class="section ${subCls(p,'usaTinta')}">
+        ${subHead(p,'Tinta','usaTinta')}
+        <div class="grid">
+          <div><label>Tinta por peça</label>${money('tinta', p.tinta)}</div>
+        </div>
+      </div>` : ''}
+
+      ${temBloco(p,'fibra') ? `
+      <div class="section ${subCls(p,'usaFibra')}">
+        ${subHead(p,'Fibra (enchimento)','usaFibra')}
+        <div class="grid">
+          <div><label>Fibra por peça</label>${unitIn('fibraG', p.fibraG, 'g')}</div>
+          <div><label>Preço do kg da fibra</label>${money('fibraKg', p.fibraKg)}<div class="hint">${isBlank(p.fibraKg) ? 'Usando o padrão de ' + brl(num(cfg.fibraKg)) + ' (aba Insumos)' : 'Preço só desta peça'}</div></div>
+          <div><label>Fibra por peça</label><div class="ro">${brl(c.fibra)}</div><div class="hint">${fmtQtd(p.fibraG)} g × ${brl(c.fibraKg)}/kg</div></div>
+        </div>
+      </div>` : ''}
+
+      ${temBloco(p,'guizo') ? `
+      <div class="section ${subCls(p,'usaGuizo')}">
+        ${subHead(p,'Guizo','usaGuizo')}
+        <div class="grid">
+          <div><label>Guizo por unidade</label>${money('guizoCusto', p.guizoCusto)}</div>
+          <div><label>Quantidade por peça</label>${unitIn('guizoQtd', p.guizoQtd, 'un')}</div>
+        </div>
+        <div class="total"><span>Guizo por peça</span><span>${brl(c.guizo)}</span></div>
+      </div>` : ''}
+
+      <div class="section">
+        <h3>${temBloco(p,'bordado') ? 'Bordado e insumos' : 'Linhas e insumos'}</h3>
+        <div class="grid">
+          ${temBloco(p,'bordado') ? `<div class="${subCls(p,'usaBordado')}" style="${p.usaBordado===false?'opacity:.5':''}"><label style="display:flex;justify-content:space-between;align-items:center">Bordado por peça <label class="chk" style="font-size:11px"><input type="checkbox" data-sub="usaBordado" ${p.usaBordado!==false?'checked':''}> somar</label></label>${money('bordado', p.bordado)}</div>` : ''}
+          <div style="grid-column:span 2">
+            <label>Linhas, botões e insumos compartilhados (por peça)</label>
+            <div class="ins-list">
+              ${state.insumos.map(i => `<label class="ins ${off.includes(i.id)?'off':''}"><input type="checkbox" data-ins="${i.id}" ${off.includes(i.id)?'':'checked'}> <span class="nm">${esc(i.nome)}</span><span class="vl">${brl(insumoUnit(i))}</span></label>`).join('') || '<div class="hint">Nenhum insumo na aba Insumos.</div>'}
+            </div>
+            <div class="hint">Desmarque o que esta peça não usa. Valores vêm da aba <a href="#" data-goto="insumos">Insumos</a>.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Outros materiais só desta peça</h3>
+        <table class="extras">
+          ${(p.extras||[]).map(e => `<tr data-eid="${e.id}">
+            <td class="nome"><input data-ek="nome" value="${esc(e.nome)}" placeholder="Ex.: fita, argola, elástico"></td>
+            <td><div class="group money"><span class="pre">R$</span><input type="text" inputmode="decimal" data-ek="custo" value="${fmtMoney(e.custo)}"></div></td>
+            <td><div class="group"><input type="text" inputmode="decimal" data-ek="rende" value="${esc(e.rende)}"><span class="suf">peças</span></div></td>
+            <td style="white-space:nowrap"><b>${brl(insumoUnit(e))}</b></td>
+            <td><button class="btn x" data-edel="${e.id}" title="Remover">×</button></td>
+          </tr>`).join('')}
+        </table>
+        <button class="btn ghost small" id="btn-extra" style="margin-top:8px">+ Adicionar material</button>
+      </div>
+
+      <div class="sumbox">
+        ${rowSub(p,'usaTecido',rotulo(p,'tecido','Tecido'),c.tecido)}
+        ${temBloco(p,'tecido2') ? rowSub(p,'usaTecido2',rotulo(p,'tecido2','Tecido 2'),c.tecido2) : ''}
+        ${temBloco(p,'sublimacao') ? rowSub(p,'usaSublim','Sublimação (folha)',c.sublim) + rowSub(p,'usaTinta','Tinta',c.tinta) : ''}
+        ${temBloco(p,'fibra') ? rowSub(p,'usaFibra','Fibra',c.fibra) : ''}
+        ${temBloco(p,'guizo') ? rowSub(p,'usaGuizo','Guizo',c.guizo) : ''}
+        ${temBloco(p,'bordado') ? rowSub(p,'usaBordado','Bordado',c.bordado) : ''}
+        <div class="r"><span>Linhas e insumos</span><span>${brl(c.insumos)}</span></div>
+        ${(p.extras||[]).length ? `<div class="r"><span>Outros materiais</span><span>${brl(c.extras)}</span></div>` : ''}
+        <div class="r tot"><span>Total matéria-prima</span><span>${brl(c.material)}</span></div>
+      </div>
+    </div>
+
+    <!-- ===== MÃO DE OBRA ===== -->
+    <div class="bloco mo ${c.usaMO?'':'off'}">
+      <div class="tit"><h3>Mão de obra</h3><label class="chk"><input type="checkbox" data-chk="usaMO" ${c.usaMO?'checked':''}> somar no custo</label></div>
+      <div class="section">
+        <div class="grid">
+          <div><label>Horas trabalhadas</label>${unitIn('horasTurno', p.horasTurno, 'horas')}</div>
+          <div><label>Pessoas trabalhando</label>${unitIn('pessoas', p.pessoas, 'pessoas')}</div>
+          <div><label>Peças feitas nesse tempo</label>${unitIn('rendeMO', p.rendeMO, 'peças')}</div>
+          <div><label>Valor da hora (por pessoa)</label>${money('valorHora', p.valorHora)}</div>
+        </div>
+      </div>
+      <div class="sumbox mo">
+        <div class="r"><span>Tempo por peça (${fmtQtd(c.horasTot)} h ÷ ${c.rendeMO})</span><span>${fmtQtd(c.minutos)} min</span></div>
+        <div class="r"><span>Valor da hora</span><span>${brl(num(p.valorHora))}</span></div>
+        <div class="r tot"><span>Total mão de obra</span><span>${brl(c.mo)}</span></div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Quanto custa e quanto sobra</h2>
+    <div class="custo-box six">
+      <div class="cb"><div class="l">Matéria-prima</div><div class="v">${brl(c.material)}</div></div>
+      <div class="cb"><div class="l">Mão de obra</div><div class="v">${brl(c.mo)}</div><div class="s">${fmtQtd(c.minutos)} min por peça</div></div>
+      <div class="cb"><div class="l">Custo total</div><div class="v">${brl(c.custo)}</div></div>
+      <div class="cb"><div class="l">Comissão</div>${unitIn('comissaoPct', p.comissaoPct, '% do preço')}</div>
+      <div class="cb"><div class="l">Embalagem</div>${money('embalagem', p.embalagem)}</div>
+      <div class="cb destaque"><div class="l">Preço de venda</div>${money('preco', p.preco)}</div>
+    </div>
+
+    <div class="sumbox res">
+      <div class="r"><span>Preço de venda</span><span>${brl(c.preco)}</span></div>
+      <div class="r"><span>− Custo total</span><span>${brl(c.custo)}</span></div>
+      <div class="r tot"><span>= Margem bruta</span><span class="${cls(c.pctBruta)}">${brl(c.margemBruta)} <small>${pct(c.pctBruta)}</small></span></div>
+      <div class="r"><span>− Comissão (${fmtQtd(p.comissaoPct)}%)</span><span>${brl(c.comissao)}</span></div>
+      <div class="r"><span>− Embalagem</span><span>${brl(c.embalagem)}</span></div>
+      <div class="r tot big"><span>= Margem líquida</span><span class="${cls(c.pctLiq)}">${brl(c.margemLiq)} <small>${pct(c.pctLiq)}</small></span></div>
+    </div>
+
+    <div class="simq">
+      <div class="tit"><h3>Simulação de venda</h3><span class="hint" style="margin:0">quantas peças você vende × preço de venda</span></div>
+      <div class="grid" style="align-items:start;max-width:640px">
+        <div><label>Quantidade vendida</label>${unitIn('simQtd', p.simQtd, 'peças')}</div>
+        <div><label>Pessoas produzindo</label>${unitIn('simPessoas', p.simPessoas, 'pessoas', `placeholder="${fmtQtd(Math.max(num(p.pessoas),1))}"`)}</div>
+      </div>
+      <div class="hint" style="color:#2f6b4c;margin-top:6px">${isBlank(p.simPessoas) ? 'Pessoas: usando as ' + fmtQtd(Math.max(num(p.pessoas),1)) + ' cadastradas na mão de obra. Digite outro número para testar.' : 'Pessoas alteradas só nesta simulação (mão de obra continua com ' + fmtQtd(Math.max(num(p.pessoas),1)) + ').'}</div>
+      ${num(p.simQtd)>0 ? `
+      <div class="simcards">
+        <div class="sc"><div class="l">Faturamento</div><div class="v">${brl(num(p.simQtd)*c.preco)}</div><div class="s">${fmtQtd(p.simQtd)} × ${brl(c.preco)}</div></div>
+        <div class="sc"><div class="l">Fica com vocês</div><div class="v">${brl(num(p.simQtd)*((c.usaMO?c.mo:0)+c.margemLiq))}</div><div class="s lines"><span><span>mão de obra</span><span>${brl(num(p.simQtd)*(c.usaMO?c.mo:0))}</span></span><span><span>+ lucro</span><span>${brl(num(p.simQtd)*c.margemLiq)}</span></span></div></div>
+        <div class="sc destaque"><div class="l">Só o lucro</div><div class="v">${brl(num(p.simQtd)*c.margemLiq)}</div><div class="s">${pct(c.pctLiq)} do faturamento</div></div>
+      </div>
+      ${(() => {
+        const q = num(p.simQtd), hTot = q * c.horas, pes = Math.max(isBlank(p.simPessoas) ? num(p.pessoas) : num(p.simPessoas), 1), hMes = num(cfg.horasMes) || 160;
+        const hPorPessoa = hTot / pes, cabe = hPorPessoa <= hMes, precisa = Math.ceil(hTot / hMes), dias = hTot / pes / 8;
+        const sobraH = Math.max(hMes*pes - hTot, 0), sobraPecas = c.horas>0 ? Math.floor(sobraH / c.horas) : 0;
+        return `<div class="prod ${cabe?'ok':'no'}">
+          <div class="pl"><div class="l">Produção necessária</div>
+            <div class="row2"><span>Horas de trabalho no total</span><b>${fmtQtd(hTot)} h</b></div>
+            <div class="row2"><span>Tempo por peça</span><b>${fmtQtd(c.minutos)} min</b></div>
+            <div class="row2"><span>Por pessoa, com ${fmtQtd(pes)} ${pes===1?'pessoa':'pessoas'}</span><b>${fmtQtd(hPorPessoa)} h · ~${fmtQtd(dias)} dias de 8 h</b></div>
+          </div>
+          <div class="pstatus">${cabe
+            ? `✓ Cabe no mês<small>${fmtQtd(hPorPessoa)} h de ${fmtQtd(hMes)} h por pessoa (${pct(hPorPessoa/hMes)} da capacidade)</small><small class="mais">Ainda dá para produzir mais <b>${sobraPecas.toLocaleString('pt-BR')} peças</b> no mês (${fmtQtd(sobraH)} h livres)</small>`
+            : `✗ Não cabe em ${fmtQtd(hMes)} h/mês<small>precisa de ${precisa} ${precisa===1?'pessoa':'pessoas'}, ou ${prazo(hPorPessoa, hMes)} com ${fmtQtd(pes)}</small>`}</div>
+        </div>`; })()}` : ''}
+    </div>
+
+    <div class="toolbar" style="align-items:center">
+      <button class="btn" id="btn-save">Salvar peça</button>
+      <span class="hint" style="margin:0">${p.salvoEm ? 'Salva em ' + new Date(p.salvoEm).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : 'Ainda não salva no resumo'}</span>
+      <span style="flex:1"></span>
+      <button class="btn ghost small" id="btn-dup">Duplicar</button>
+      <button class="btn danger small" id="btn-del">Excluir</button>
+    </div>
+  </div>`;
+
+  el.querySelectorAll('[data-f]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const f = inp.dataset.f;
+      if (f==='sku') p[f] = inp.value.toUpperCase();
+      else if (f==='categoria'){ p.categoria = inp.value; p.insumosOff = tpl(p).insumosOff.slice(); }
+      else p[f] = inp.value;
+      save(); renderList(); if (f==='categoria' || f==='canal' || f==='unidade' || f==='unidade2') { renderEditor(); renderResumo(); } else updateResults();
+    });
+    if (inp.closest('.money')) inp.addEventListener('blur', () => { inp.value = fmtMoney(p[inp.dataset.f]); });
+  });
+  el.querySelectorAll('[data-ek]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const e = p.extras.find(x => x.id===inp.closest('tr').dataset.eid); if (!e) return;
+      e[inp.dataset.ek] = inp.value; save(); renderList();
+      const k = inp.dataset.ek, id = e.id, pos = inp.selectionStart, scroll = window.scrollY;
+      renderEditor(); window.scrollTo(0, scroll);
+      const n = $(`#editor tr[data-eid="${id}"] [data-ek="${k}"]`); if (n){ if (k==='custo') n.value = e.custo; n.focus(); try{ n.setSelectionRange(pos,pos);}catch(_){} }
+    });
+    if (inp.dataset.ek==='custo') inp.addEventListener('blur', () => { const e = p.extras.find(x => x.id===inp.closest('tr').dataset.eid); if (e) inp.value = fmtMoney(e.custo); });
+  });
+  el.querySelectorAll('[data-edel]').forEach(b => b.onclick = () => { p.extras = p.extras.filter(x => x.id!==b.dataset.edel); save(); renderList(); renderEditor(); });
+  $('#btn-extra').onclick = () => { p.extras.push({ id: uid(), nome:'', custo:'', rende:'' }); save(); renderEditor(); $('#editor tr[data-eid]:last-child [data-ek="nome"]')?.focus(); };
+  el.querySelectorAll('[data-sub]').forEach(ch => ch.onchange = () => { p[ch.dataset.sub] = ch.checked; save(); renderList(); renderEditor(); renderResumo(); });
+  el.querySelectorAll('[data-ins]').forEach(ch => ch.onchange = () => {
+    const id = ch.dataset.ins; p.insumosOff = (p.insumosOff||[]).filter(x => x!==id); if (!ch.checked) p.insumosOff.push(id);
+    save(); renderList(); renderEditor(); renderResumo();
+  });
+  el.querySelectorAll('[data-chk]').forEach(ch => ch.onchange = () => { p[ch.dataset.chk] = ch.checked; save(); renderList(); renderEditor(); renderResumo(); });
+  el.querySelector('[data-goto]').onclick = e => { e.preventDefault(); goTab('insumos'); };
+  $('#btn-save').onclick = () => { p.salvoEm = Date.now(); save(); toast('Peça salva no resumo'); const sc = window.scrollY; render(); window.scrollTo(0, sc); };
+  $('#btn-dup').onclick = () => duplicarPeca(p);
+  $('#btn-del').onclick = () => excluirPeca(p);
+}
+
+function updateResults(){
+  const active = document.activeElement;
+  const f = active?.dataset?.f, pos = active?.selectionStart;
+  const scroll = window.scrollY;
+  renderEditor();
+  if (f){ const n = $(`#editor [data-f="${f}"]`); if (n){ if (n.closest('.money')) n.value = selected()?.[f] ?? ''; n.focus(); try{ if(pos!=null) n.setSelectionRange(pos,pos);}catch(e){} } }
+  window.scrollTo(0, scroll);
+}
+
+function renderInsumos(){
+  const t = $('#insumos');
+  const rows = state.insumos.map(i => `<tr data-id="${i.id}">
+    <td class="nome"><input data-k="nome" value="${esc(i.nome)}" placeholder="Nome"></td>
+    <td class="in"><div class="group money"><span class="pre">R$</span><input type="text" inputmode="decimal" data-k="custo" value="${fmtMoney(i.custo)}"></div></td>
+    <td class="in"><div class="group"><input type="text" inputmode="decimal" data-k="rende" value="${esc(i.rende)}"><span class="suf">naninhas</span></div></td>
+    <td><b>${brl3(insumoUnit(i))}</b></td>
+    <td class="nome"><input data-k="obs" value="${esc(i.obs||'')}" placeholder="anotação (opcional)" style="color:var(--muted)"></td>
+    <td><button class="btn x" data-del="${i.id}" title="Remover">×</button></td>
+  </tr>`).join('');
+  t.innerHTML = `<thead><tr><th>Insumo</th><th>Pacote custa</th><th>Rende</th><th>Por naninha</th><th>Anotação</th><th></th></tr></thead>
+    <tbody>${rows}<tr class="soma"><td colspan="3">Total de insumos por naninha</td><td>${brl(insumosPorNaninha())}</td><td colspan="2"></td></tr></tbody>`;
+  t.querySelectorAll('input').forEach(inp => inp.oninput = () => {
+    const i = state.insumos.find(x => x.id===inp.closest('tr').dataset.id);
+    i[inp.dataset.k] = inp.value; save();
+    const active = document.activeElement, pos = active.selectionStart, id = i.id, k = inp.dataset.k;
+    renderInsumos(); renderList(); renderEditor(); renderResumo();
+    const n = $(`#insumos tr[data-id="${id}"] [data-k="${k}"]`); if (n){ if (k==='custo') n.value = i.custo; n.focus(); try{ n.setSelectionRange(pos,pos);}catch(e){} }
+  });
+  t.querySelectorAll('[data-k="custo"]').forEach(inp => inp.onblur = () => { const i = state.insumos.find(x => x.id===inp.closest('tr').dataset.id); if (i) inp.value = fmtMoney(i.custo); });
+  t.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const i = state.insumos.find(x => x.id===b.dataset.del);
+    if (!confirm(`Remover "${i.nome}"?`)) return;
+    state.insumos = state.insumos.filter(x => x.id!==i.id); save(); render();
+  });
+}
+
+function renderResumo(){
+  const t = $('#resumo');
+  const salvas = state.products.filter(passaFiltro);   // todas as peças; não salvas aparecem como rascunho
+  const chips = $('#resumo-chips'); if (chips){ chips.innerHTML = chipsHTML(); bindChips(chips, () => { renderList(); renderResumo(); }); }
+  if (!salvas.length){ t.innerHTML = '<tr><td class="empty">Nenhuma peça cadastrada.</td></tr>'; return; }
+  const cols = [['nome','Peça'],['custo','Custo'],['preco','Preço<br>de venda'],['minutos','Tempo<br>por peça'],['porHora','Peças<br>por hora'],['mo','Mão de obra<br>por peça'],['margemLiq','Lucro<br>por peça'],['fica','Fica com vocês<br>por peça'],['fatHora','Faturamento<br>por hora'],['lucroHora','Lucro<br>por hora'],['totalHora','Mão de obra dos dois<br>+ lucro por hora']];
+  const rows = salvas.map(p => { const c = calc(p, state.config); c.porHora = c.horas>0 ? 1/c.horas : 0; c.fica = (c.usaMO?c.mo:0) + c.margemLiq; c.pessoas = Math.max(num(p.pessoas),1); c.lucroHora = c.margemLiq * c.porHora * c.pessoas; c.fatHora = c.preco * c.porHora * c.pessoas; c.dist = p.canal==='Distribuidor'; c.totalHora = c.dist ? c.fica * c.porHora * c.pessoas : -Infinity; return { p, c }; });
+  rows.sort((A,B) => {
+    const k = sortBy.key;
+    const txt = (k==='sku'||k==='nome'||k==='categoria'||k==='canal');
+    const va = txt ? String(A.p[k]||'').toLowerCase() : A.c[k];
+    const vb = txt ? String(B.p[k]||'').toLowerCase() : B.c[k];
+    return (va<vb ? -1 : va>vb ? 1 : 0) * sortBy.dir;
+  });
+  const th = cols.map(([k,l]) => `<th class="sortable ${sortBy.key===k?'on':''}" data-sort="${k}">${l}<span class="arrow">${sortBy.key===k ? (sortBy.dir===1?'▲':'▼') : '⇅'}</span></th>`).join('');
+  t.innerHTML = `<thead><tr>${th}<th></th></tr></thead><tbody>` +
+    rows.map(({p,c}) => `<tr class="${p.salvoEm?'':'draft'} ${p.canal==='Distribuidor'?'dist':''}">
+      <td style="text-align:left">${esc(p.nome)}${p.salvoEm ? '' : '<br><small><span class="tag">rascunho · não salva</span></small>'}</td>
+      <td>${brl(c.custo)}</td>
+      <td><b>${brl(c.preco)}</b></td>
+      <td>${fmtQtd(c.minutos)} min</td>
+      <td>${c.porHora ? `<span class="pph"><span>${c.porHora.toLocaleString('pt-BR',{maximumFractionDigits:1})}<small>1 pessoa</small></span><span class="dupla">${(c.porHora*c.pessoas).toLocaleString('pt-BR',{maximumFractionDigits:1})}<small>${fmtQtd(c.pessoas)} ${c.pessoas===1?'pessoa':'pessoas'}</small></span></span>` : '—'}</td>
+      <td class="${c.usaMO && c.mo>0 ? 'bad' : ''}">${brl(c.mo)}</td>
+      <td class="${sgn(c.margemLiq)}"><b>${brl(c.margemLiq)}</b> <small>(${pct(c.pctLiq)})</small></td>
+      <td class="${sgn(c.fica)}"><b>${brl(c.fica)}</b></td>
+      <td>${c.porHora ? `<b>${brl(c.fatHora)}</b><br><small>${c.pessoas===1?'1 pessoa':'as '+fmtQtd(c.pessoas)+' juntas'}</small>` : '—'}</td>
+      <td class="${sgn(c.lucroHora)}"><b>${c.porHora ? brl(c.lucroHora) : '—'}</b><br><small>${c.pessoas===1?'1 pessoa':'as '+fmtQtd(c.pessoas)+' juntas'}</small></td>
+      <td class="${c.dist ? sgn(c.totalHora) : ''}">${c.dist && c.porHora ? `<b>${brl(c.totalHora)}</b><br><small>${brl(c.totalHora/c.pessoas)} cada por hora</small>` : ''}</td>
+      <td><button class="btn ghost small" data-edit="${p.id}">Editar</button></td>
+    </tr>`).join('') + '</tbody>';
+  t.querySelectorAll('[data-sort]').forEach(h => h.onclick = () => {
+    const k = h.dataset.sort;
+    sortBy = { key: k, dir: sortBy.key===k ? -sortBy.dir : 1 };
+    renderResumo();
+  });
+  t.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
+    state.selectedId = b.dataset.edit; save(); render(); goTab('gastos');
+    const n = $('#editor [data-f="preco"]'); if (n){ n.scrollIntoView({block:'center'}); n.focus(); n.select(); }
+  });
+}
+
+function renderConfig(){
+  for (const k of Object.keys(defaultConfig)){
+    const inp = $('#cfg-'+k); if (!inp) continue;
+    inp.value = inp.hasAttribute('data-money') ? fmtMoney(state.config[k]) : state.config[k];
+    inp.oninput = () => { state.config[k] = inp.value; save(); renderList(); renderEditor(); renderResumo(); };
+    if (inp.hasAttribute('data-money')) inp.onblur = () => { inp.value = fmtMoney(state.config[k]); };
+  }
+}
+
+function render(){ renderList(); renderEditor(); renderInsumos(); renderResumo(); renderConfig(); }
+
+
+/* ---------- efeitos ---------- */
+function duplicarPeca(p){ const d = {...p, id: uid(), nome: p.nome+' (cópia)', sku: p.sku ? p.sku+'-COPIA' : '', salvoEm: null, extras: (p.extras||[]).map(e => ({...e, id: uid()})), insumosOff: (p.insumosOff||[]).slice()}; state.products.push(d); state.selectedId=d.id; save(); render(); window.scrollTo({top:0,behavior:'smooth'}); confetti('dup'); dupCard(d); }
+function excluirPeca(p){ if (!confirm(`Excluir "${p.nome}"?`)) return; const nome = p.nome; state.products = state.products.filter(x=>x.id!==p.id); if (state.selectedId===p.id) state.selectedId = state.products[0]?.id||null; save(); render(); delCard(nome); }
+function confetti(kind){
+  let cv = $('#fx'); if (!cv){ cv = document.createElement('canvas'); cv.id='fx'; document.body.appendChild(cv); }
+  const ctx = cv.getContext('2d'); cv.width = innerWidth; cv.height = innerHeight;
+  const parts = [], now = performance.now();
+  if (kind === 'nova'){
+    // explosão de confete colorido a partir do centro da tela
+    const cores = ['#c9786f','#f2b5a9','#7a9cc6','#f6d365','#8fd3a6','#c9a7e0','#fff'];
+    const cx = innerWidth/2, cy = innerHeight*0.35;
+    for (let i=0;i<160;i++){
+      const a = Math.random()*Math.PI*2, v = 6+Math.random()*9;
+      parts.push({ x:cx, y:cy, vx:Math.cos(a)*v, vy:Math.sin(a)*v-4, g:0.25, w:6+Math.random()*6, h:4+Math.random()*6,
+        rot:Math.random()*Math.PI, vr:(Math.random()-.5)*0.3, cor:cores[i%cores.length], shape:'rect', life:1, decay:0.008+Math.random()*0.006 });
+    }
+  } else {
+    // duplicação: chuva suave de coraçõezinhos/círculos em rosé e azul, caindo do topo
+    const cores = ['#c9786f','#e9b6ad','#7a9cc6','#b9cde6'];
+    for (let i=0;i<90;i++){
+      parts.push({ x:Math.random()*innerWidth, y:-20-Math.random()*innerHeight*0.6, vx:(Math.random()-.5)*1.2, vy:2+Math.random()*2.5, g:0.02,
+        w:8+Math.random()*8, h:0, rot:0, vr:0, cor:cores[i%cores.length], shape: i%3?'heart':'circle', life:1, decay:0.004+Math.random()*0.004, sway:Math.random()*Math.PI*2 });
+    }
+  }
+  function heart(x,y,s){ ctx.beginPath(); ctx.moveTo(x,y+s*0.3); ctx.bezierCurveTo(x,y,x-s*0.5,y,x-s*0.5,y+s*0.3); ctx.bezierCurveTo(x-s*0.5,y+s*0.6,x,y+s*0.8,x,y+s); ctx.bezierCurveTo(x,y+s*0.8,x+s*0.5,y+s*0.6,x+s*0.5,y+s*0.3); ctx.bezierCurveTo(x+s*0.5,y,x,y,x,y+s*0.3); ctx.fill(); }
+  function frame(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    let alive = 0;
+    for (const p of parts){
+      if (p.life<=0) continue; alive++;
+      p.vy += p.g; p.x += p.vx + (p.sway!==undefined ? Math.sin((p.sway+=0.05))*0.8 : 0); p.y += p.vy; p.rot += p.vr; p.life -= p.decay;
+      ctx.save(); ctx.globalAlpha = Math.max(p.life,0); ctx.fillStyle = p.cor; ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+      if (p.shape==='rect') ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      else if (p.shape==='circle'){ ctx.beginPath(); ctx.arc(0,0,p.w/2,0,Math.PI*2); ctx.fill(); }
+      else heart(0,-p.w/2,p.w);
+      ctx.restore();
+    }
+    if (alive) requestAnimationFrame(frame); else ctx.clearRect(0,0,cv.width,cv.height);
+  }
+  requestAnimationFrame(frame);
+}
+
+function dupCard(p){
+  const c = calc(p, state.config);
+  let d = $('.dupcard'); if (!d){ d = document.createElement('div'); d.className='dupcard'; document.body.appendChild(d); }
+  d.innerHTML = `<div class="t">Peça duplicada</div><div class="n">${esc(p.nome)}</div><div class="s">custo ${brl(c.custo)} · venda ${brl(c.preco)}</div>`;
+  requestAnimationFrame(() => d.classList.add('show'));
+  clearTimeout(d._t); d._t = setTimeout(() => d.classList.remove('show'), 2000);
+}
+
+function delCard(nome){
+  let dim = $('.dim'); if (!dim){ dim = document.createElement('div'); dim.className='dim'; document.body.appendChild(dim); }
+  let d = $('.dupcard'); if (!d){ d = document.createElement('div'); d.className='dupcard'; document.body.appendChild(d); }
+  d.className = 'dupcard del';
+  d.innerHTML = `<div class="ico">🗑️</div><div class="t">Excluída com sucesso</div><div class="n">${esc(nome)}</div><div class="s">a peça foi removida da lista e do resumo</div>`;
+  requestAnimationFrame(() => { d.classList.add('show'); dim.classList.add('show'); });
+  clearTimeout(d._t); d._t = setTimeout(() => { d.classList.remove('show'); dim.classList.remove('show'); setTimeout(()=>{ d.className='dupcard'; }, 300); }, 2600);
+}
+
+/* ---------- ações globais ---------- */
+let toastT; function toast(msg){ let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 2200); }
+function goTab(name){
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active', x.dataset.tab===name));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.id==='tab-'+name));
+  window.scrollTo(0,0);
+  // 1ª vez que abre o Resumo: já mostra só o distribuidor
+  if (name==='resumo' && !resumoJaAberto){ resumoJaAberto = true; filtroCanal = 'Distribuidor'; renderList(); renderResumo(); }
+}
+let resumoJaAberto = false;
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => goTab(b.dataset.tab));
+$('#btn-new').onclick = () => { const p = newProduct(); state.products.push(p); state.selectedId = p.id; save(); render(); $('#editor .big-name')?.select(); };
+$('#btn-insumo').onclick = () => { state.insumos.push({ id: uid(), nome:'', custo:0, rende:1, obs:'' }); save(); renderInsumos(); $('#insumos tr:nth-last-child(2) input')?.focus(); };
+$('#btn-export').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
+  a.download = `naninhas-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+};
+$('#file-import').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { try{ const s = JSON.parse(r.result); if(!s.products) throw 0; localStorage.setItem(KEY, JSON.stringify(s)); state = load(); save(); render(); alert('Backup importado.'); }catch(_){ alert('Arquivo inválido.'); } };
+  r.readAsText(f); e.target.value='';
+};
+$('#btn-reset').onclick = () => { if (confirm('Apagar todas as naninhas, insumos e configurações?')) { ['naninhas-v1','naninhas-v2',KEY].forEach(k=>localStorage.removeItem(k)); state = load(); render(); } };
+
+/* exemplo inicial */
+if (!state.products.length){
+  const ex = newProduct();
+  Object.assign(ex, { nome:'Naninha Ursinho', sku:'NAN-001', qtd:'0,90', custoUnit:38, rende:7, fibraG:30, bordado:'3,50', horasTurno:8, pessoas:2, rendeMO:30, valorHora:25, preco:'72,00', comissaoPct:0, embalagem:0 });
+  state.products.push(ex); state.selectedId = ex.id; save();
+}
+if (!state.products.some(p => p.categoria==='Dado')){
+  const d = newProduct();
+  Object.assign(d, { nome:'Dado', sku:'DAD-001', categoria:'Dado', insumosOff: TPL.Dado.insumosOff.slice(),
+    qtd:'1', custoUnit:'19,90', rende:'28', subCusto:'42,00', subRende:'100', tinta:'0,37', guizoCusto:'0,40', guizoQtd:'1', fibraG:'20', fibraKg:'',
+    horasTurno:'4', pessoas:'2', rendeMO:'50', valorHora:'25,00' });
+  state.products.push(d); save();
+}
+if (!state.products.some(p => p.categoria==='Travesseiro')){
+  const t = newProduct();
+  Object.assign(t, { nome:'Travesseiro', sku:'TRA-001', categoria:'Travesseiro', insumosOff: TPL.Travesseiro.insumosOff.slice(),
+    qtd:'1', custoUnit:'7,90', rende:'10', subCusto:'42,00', subRende:'100', tinta:'0,37', fibraG:'25', fibraKg:'',
+    horasTurno:'8', pessoas:'2', rendeMO:'50', valorHora:'25,00' });
+  state.products.push(t); save();
+}
+state.products.filter(p => p.sku==='TRA-001' && isBlank(p.horasTurno) && isBlank(p.rendeMO)).forEach(p => { Object.assign(p, { horasTurno:'8', pessoas:'2', rendeMO:'50', valorHora: isBlank(p.valorHora)?'25,00':p.valorHora }); save(); });
+if (!state.products.some(p => p.categoria==='Babeiro')){
+  const b = newProduct();
+  Object.assign(b, { nome:'Babeiro', sku:'BAB-001', categoria:'Babeiro', insumosOff: TPL.Babeiro.insumosOff.slice(),
+    qtd:'1,10', custoUnit:'35,00', rende:'24', qtd2:'1,10', custoUnit2:'15,00', rende2:'24',
+    horasTurno:'1', pessoas:'2', rendeMO:'20', valorHora:'25,00' });
+  state.products.push(b); save();
+}
+if (!state.products.some(p => p.categoria==='Toalha de boca')){
+  const t = newProduct();
+  Object.assign(t, { nome:'Toalha de boca', sku:'TOA-001', categoria:'Toalha de boca', insumosOff: TPL['Toalha de boca'].insumosOff.slice(),
+    qtd:'1', custoUnit:'35,00', rende:'18', qtd2:'1', custoUnit2:'12,00', rende2:'3',
+    horasTurno:'8', pessoas:'2', rendeMO:'100', valorHora:'25,00' });
+  state.products.push(t); save();
+}
+if (!state.products.some(p => p.categoria==='Kit touca')){
+  const k = newProduct();
+  Object.assign(k, { nome:'Kit touca', sku:'KIT-001', categoria:'Kit touca', insumosOff: TPL['Kit touca'].insumosOff.slice(),
+    qtd:'2,5', custoUnit:'35,00', rende:'20',
+    horasTurno:'8', pessoas:'2', rendeMO:'40', valorHora:'25,00' });
+  state.products.push(k); save();
+}
+// dado de exemplo criado antes sem mão de obra: completa com 4 h × 2 pessoas = 50 dados
+state.products.filter(p => p.sku==='DAD-001' && isBlank(p.horasTurno) && isBlank(p.rendeMO)).forEach(p => { Object.assign(p, { horasTurno:'4', pessoas:'2', rendeMO:'50', valorHora: isBlank(p.valorHora)?'25,00':p.valorHora }); save(); });
+state.products.filter(p => p.sku==='DAD-001' && isBlank(p.tinta)).forEach(p => { p.tinta='0,37'; save(); });
+state.products.filter(p => p.sku==='DAD-001' && isBlank(p.guizoCusto)).forEach(p => { p.guizoCusto='0,40'; p.guizoQtd='1'; save(); });
+// conferência única (07/11): toda a mão de obra cadastrada até aqui é de 2 pessoas; peças que ficaram com 1 (ou vazio)
+// passam para 2. Roda uma vez só — depois disso, quem cadastrar 1 pessoa de propósito não é alterado.
+// conferência dos cadastros (07/11): Kit touca distribuidor estava marcado como venda direta; travesseiros sem o canal no nome.
+if (!state.cadastrosConferidos){
+  state.products.forEach(p => {
+    if (p.sku==='KIT-001D' && p.canal==='Venda direta') p.canal = 'Distribuidor';
+    if (p.sku==='TRA-001D' && p.nome==='Travesseiro') p.nome = 'Travesseiro Distribuidor';
+    if (p.sku==='TRA-001V' && p.nome==='Travesseiro (cópia)') p.nome = 'Travesseiro Venda Direta';
+  });
+  state.cadastrosConferidos = true; save();
+}
+if (!state.pessoasConferidas){
+  const ajustadas = state.products.filter(p => num(p.pessoas) < 2);
+  ajustadas.forEach(p => { p.pessoas = '2'; });
+  state.pessoasConferidas = true; save();
+  if (ajustadas.length) setTimeout(() => toast(`Mão de obra conferida: ${ajustadas.map(p => p.nome).join(', ')} passou para 2 pessoas`), 600);
+}
+render();
+</script>
+</body>
+</html>
