@@ -1096,7 +1096,17 @@ async function sincronizarInicial(){
   syncStatus('Conectando…', 'busy');
   try {
     const cloud = await pull();
-    if (cloud.pecas.length || cloud.ajustes.length) { aplicar(cloud); nuvemPronta = true; syncStatus('Sincronizado', 'ok'); return; }
+    if (cloud.pecas.length || cloud.ajustes.length) {
+      // peças que só existem neste aparelho entram junto com as da nuvem (nunca são descartadas sem perguntar)
+      const naNuvem = new Set(cloud.pecas.map(r => r.id));
+      const soAqui = state.products.filter(p => !naNuvem.has(p.id));
+      let juntar = soAqui.length > 0;
+      if (juntar && cloud.pecas.length) juntar = confirm(`A nuvem tem ${cloud.pecas.length} peças. Este aparelho tem ${soAqui.length} que não estão lá:\n\n${soAqui.map(p => p.nome).join(', ')}\n\nOK = juntar tudo na nuvem · Cancelar = ficar só com o que está na nuvem`);
+      aplicar(cloud);
+      if (juntar) { soAqui.forEach(p => state.products.push(p)); save(); }
+      nuvemPronta = true; if (juntar) agendarPush(0); else syncStatus('Sincronizado', 'ok');
+      return;
+    }
     // nuvem vazia (ou código errado): tenta gravar a configuração; se o código estiver errado, dá erro aqui
     await api('ajustes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ id: 'config', dados: state.config }]) });
     const nomes = state.products.map(p => p.nome).join(', ');
