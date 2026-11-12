@@ -351,6 +351,8 @@ const defaultInsumos = () => [
   { id:'i4', nome:'Linha over (2 rolos/mês)',         custo:15.8, rende:500, obs:'igual à reta' },
   { id:'i5', nome:'Botão de pressão (caixinha)',      custo:33,   rende:200, obs:'' },
 ];
+let chave = localStorage.getItem('naninhas-chave') || '';
+let nuvemPronta = false, enviado = {}, enviando = false, pushT = null, pushPendente = false;
 let state = load();
 let sortBy = { key: 'totalHora', dir: -1 };   // resumo abre pela última coluna, do maior para o menor
 const CATEGORIAS = ['Naninha','Dado','Travesseiro','Toalha de boca','Prendedor de chupeta','Babeiro','Kit touca','Outro'];
@@ -1022,8 +1024,6 @@ render();
 
 /* ---------- nuvem (Supabase): mesmas peças em todos os aparelhos ---------- */
 const NUVEM = { url: 'https://gtydpwczfumnjwegrdzc.supabase.co', key: 'sb_publishable_F7nXFR65X_0ByFdWL22itg_i_6kxwog' };
-let chave = localStorage.getItem('naninhas-chave') || '';
-let nuvemPronta = false, enviado = {}, enviando = false, pushT = null, pushPendente = false;
 function pedirChave(msg){
   const c = prompt(msg || 'Código de acesso da família (o mesmo em todos os aparelhos):', '');
   if (c === null) return false;
@@ -1099,6 +1099,10 @@ async function sincronizarInicial(){
     if (cloud.pecas.length || cloud.ajustes.length) { aplicar(cloud); nuvemPronta = true; syncStatus('Sincronizado', 'ok'); return; }
     // nuvem vazia (ou código errado): tenta gravar a configuração; se o código estiver errado, dá erro aqui
     await api('ajustes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ id: 'config', dados: state.config }]) });
+    const nomes = state.products.map(p => p.nome).join(', ');
+    if (!confirm(`A nuvem ainda está vazia. Enviar as ${state.products.length} peças deste aparelho para a nuvem?\n\n${nomes}\n\nSe o cadastro completo está em outro navegador, clique em Cancelar e abra a página lá.`)) {
+      syncStatus('Nuvem vazia · abra no navegador que tem o cadastro', 'err'); return;
+    }
     nuvemPronta = true; enviado = {}; agendarPush(0);   // primeira vez: manda tudo que está neste aparelho
   } catch (e) {
     if (chaveInvalida(e)) { chave = ''; localStorage.removeItem('naninhas-chave'); if (pedirChave('Código de acesso incorreto. Digite de novo:')) return sincronizarInicial(); syncStatus('Código de acesso inválido · só neste aparelho', 'err'); return; }
@@ -1106,7 +1110,8 @@ async function sincronizarInicial(){
   }
 }
 async function atualizarDaNuvem(){
-  if (!nuvemPronta || enviando || pushPendente) return;
+  if (!nuvemPronta) { if (chave && !enviando) sincronizarInicial(); return; }
+  if (enviando || pushPendente) return;
   try {
     const cloud = await pull(); const novo = snapshotDe(cloud);
     if (canon(novo) !== canon(enviado)) { aplicar(cloud); toast('Atualizado com as mudanças de outro aparelho'); }
