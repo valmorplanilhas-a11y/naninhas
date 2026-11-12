@@ -15,6 +15,8 @@
   header{display:flex;align-items:center;gap:18px;padding:16px 24px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
   header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px}
   header h1 span{color:var(--accent)}
+  .sync{margin-left:auto;font-size:12px;color:#8a8a8a;white-space:nowrap}
+  .sync.ok{color:#2e7d32}.sync.err{color:#c62828}.sync.busy{color:#b26a00}
   nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
   nav button{border:1px solid transparent;background:transparent;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:14px}
   nav button.active{background:var(--soft);color:var(--ink);border-color:var(--line)}
@@ -268,6 +270,7 @@
     <button data-tab="resumo">Resumo</button>
     <button data-tab="config">Configurações</button>
   </nav>
+  <span id="sync" class="sync"></span>
 </header>
 
 <main>
@@ -330,11 +333,11 @@
         <label class="btn ghost" style="display:inline-block">Importar backup <input type="file" id="file-import" accept="application/json" style="display:none"></label>
         <button class="btn danger" id="btn-reset">Apagar tudo</button>
       </div>
-      <div class="hint" style="margin-top:8px">Os dados ficam salvos neste navegador. Exporte um backup de vez em quando.</div>
+      <div class="hint" style="margin-top:8px">Os dados ficam salvos na nuvem e aparecem iguais em todos os aparelhos. Exporte um backup de vez em quando.</div>
     </div>
   </section>
 
-  <footer>Protótipo local · Naninhas</footer>
+  <footer>Naninhas · dados sincronizados na nuvem</footer>
 </main>
 
 <script>
@@ -411,7 +414,7 @@ function load(){
   }catch(e){}
   return { products: [], insumos: defaultInsumos(), config: {...defaultConfig}, selectedId: null };
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); agendarPush(); }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
 
 function newProduct(){
@@ -950,7 +953,7 @@ $('#file-import').onchange = e => {
   r.onload = () => { try{ const s = JSON.parse(r.result); if(!s.products) throw 0; localStorage.setItem(KEY, JSON.stringify(s)); state = load(); save(); render(); alert('Backup importado.'); }catch(_){ alert('Arquivo inválido.'); } };
   r.readAsText(f); e.target.value='';
 };
-$('#btn-reset').onclick = () => { if (confirm('Apagar todas as naninhas, insumos e configurações?')) { ['naninhas-v1','naninhas-v2',KEY].forEach(k=>localStorage.removeItem(k)); state = load(); render(); } };
+$('#btn-reset').onclick = async () => { if (!confirm('Apagar todas as peças, insumos e configurações em TODOS os aparelhos?')) return; try{ await api('pecas?id=neq.__', {method:'DELETE'}); await api('ajustes?id=neq.__', {method:'DELETE'}); }catch(e){ alert('Não consegui apagar na nuvem. Confira a conexão.'); return; } nuvemPronta = false; ['naninhas-v1','naninhas-v2',KEY].forEach(k=>localStorage.removeItem(k)); location.reload(); };
 
 /* exemplo inicial */
 if (!state.products.length){
@@ -1016,6 +1019,102 @@ if (!state.pessoasConferidas){
   if (ajustadas.length) setTimeout(() => toast(`Mão de obra conferida: ${ajustadas.map(p => p.nome).join(', ')} passou para 2 pessoas`), 600);
 }
 render();
+
+/* ---------- nuvem (Supabase): mesmas peças em todos os aparelhos ---------- */
+const NUVEM = { url: 'https://gtydpwczfumnjwegrdzc.supabase.co', key: 'sb_publishable_F7nXFR65X_0ByFdWL22itg_i_6kxwog' };
+let chave = localStorage.getItem('naninhas-chave') || '';
+let nuvemPronta = false, enviado = {}, enviando = false, pushT = null, pushPendente = false;
+function pedirChave(msg){
+  const c = prompt(msg || 'Código de acesso da família (o mesmo em todos os aparelhos):', '');
+  if (c === null) return false;
+  chave = c.trim(); localStorage.setItem('naninhas-chave', chave); return true;
+}
+function syncStatus(txt, cls){ const el = $('#sync'); if (!el) return; el.textContent = txt; el.className = 'sync ' + (cls||''); }
+async function api(path, opt={}){
+  const r = await fetch(NUVEM.url + '/rest/v1/' + path, { ...opt, headers: { apikey: NUVEM.key, 'Content-Type': 'application/json', 'x-chave': chave, ...(opt.headers||{}) } });
+  if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
+  const t = await r.text(); return t ? JSON.parse(t) : null;
+}
+// texto canônico (chaves ordenadas) para comparar com o que a nuvem devolve
+function canon(v){
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
+}
+function snapshot(){
+  const o = {};
+  state.products.forEach((p, i) => { o['p:' + p.id] = canon({ ...p, pos: i }); });
+  o['a:config'] = canon(state.config); o['a:insumos'] = canon(state.insumos);
+  return o;
+}
+function snapshotDe(cloud){
+  const o = {};
+  cloud.pecas.forEach(r => { o['p:' + r.id] = canon(r.dados); });
+  cloud.ajustes.forEach(r => { o['a:' + r.id] = canon(r.dados); });
+  return o;
+}
+function chaveInvalida(e){ return e && (e.status === 401 || e.status === 403); }
+function agendarPush(ms = 700){ if (!nuvemPronta) return; clearTimeout(pushT); pushPendente = true; pushT = setTimeout(push, ms); syncStatus('Salvando…', 'busy'); }
+async function push(){
+  if (enviando) return;           // termina o envio atual; pushPendente faz rodar de novo
+  pushT = null; pushPendente = false;
+  const atual = snapshot(), ups = [], ajs = [], dels = [];
+  for (const k in atual) if (atual[k] !== enviado[k]) (k.startsWith('p:') ? ups : ajs).push(k);
+  for (const k in enviado) if (k.startsWith('p:') && !(k in atual)) dels.push(k.slice(2));
+  if (!ups.length && !ajs.length && !dels.length) { syncStatus('Sincronizado', 'ok'); return; }
+  enviando = true;
+  const agora = new Date().toISOString();
+  const linhas = ks => ks.map(k => ({ id: k.slice(2), dados: JSON.parse(atual[k]), atualizado_em: agora }));
+  try {
+    if (ups.length) await api('pecas',   { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(linhas(ups)) });
+    if (ajs.length) await api('ajustes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(linhas(ajs)) });
+    if (dels.length) await api('pecas?id=in.(' + dels.map(encodeURIComponent).join(',') + ')', { method: 'DELETE' });
+    ups.concat(ajs).forEach(k => { enviado[k] = atual[k]; }); dels.forEach(id => { delete enviado['p:' + id]; });
+    syncStatus('Sincronizado', 'ok');
+  } catch (e) {
+    if (chaveInvalida(e)) { chave = ''; localStorage.removeItem('naninhas-chave'); syncStatus('Código de acesso inválido', 'err'); enviando = false; if (pedirChave('Código de acesso incorreto. Digite de novo:')) agendarPush(0); return; }
+    syncStatus('Sem conexão · tentando de novo', 'err'); setTimeout(() => agendarPush(0), 6000);
+  } finally { enviando = false; if (pushPendente) agendarPush(0); }
+}
+async function pull(){
+  const [pecas, ajustes] = await Promise.all([ api('pecas?select=id,dados&order=id'), api('ajustes?select=id,dados') ]);
+  return { pecas: pecas || [], ajustes: ajustes || [] };
+}
+function aplicar(cloud){
+  const cfg = cloud.ajustes.find(a => a.id === 'config'), ins = cloud.ajustes.find(a => a.id === 'insumos');
+  state.products = cloud.pecas.map(r => r.dados).sort((a, b) => (a.pos ?? 0) - (b.pos ?? 0));
+  if (cfg) state.config = Object.assign({}, defaultConfig, cfg.dados);
+  if (ins && Array.isArray(ins.dados)) state.insumos = ins.dados;
+  if (!state.products.some(p => p.id === state.selectedId)) state.selectedId = state.products[0]?.id || null;
+  localStorage.setItem(KEY, JSON.stringify(state)); state = load();   // normaliza os campos como no carregamento
+  enviado = snapshot();
+  const sc = window.scrollY, foco = document.activeElement?.id;
+  render(); window.scrollTo(0, sc); if (foco) document.getElementById(foco)?.focus();
+}
+async function sincronizarInicial(){
+  if (!chave && !pedirChave()) { syncStatus('Sem código de acesso · só neste aparelho', 'err'); return; }
+  syncStatus('Conectando…', 'busy');
+  try {
+    const cloud = await pull();
+    if (cloud.pecas.length || cloud.ajustes.length) { aplicar(cloud); nuvemPronta = true; syncStatus('Sincronizado', 'ok'); return; }
+    // nuvem vazia (ou código errado): tenta gravar a configuração; se o código estiver errado, dá erro aqui
+    await api('ajustes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ id: 'config', dados: state.config }]) });
+    nuvemPronta = true; enviado = {}; agendarPush(0);   // primeira vez: manda tudo que está neste aparelho
+  } catch (e) {
+    if (chaveInvalida(e)) { chave = ''; localStorage.removeItem('naninhas-chave'); if (pedirChave('Código de acesso incorreto. Digite de novo:')) return sincronizarInicial(); syncStatus('Código de acesso inválido · só neste aparelho', 'err'); return; }
+    syncStatus('Sem conexão · tentando de novo', 'err'); setTimeout(sincronizarInicial, 8000);
+  }
+}
+async function atualizarDaNuvem(){
+  if (!nuvemPronta || enviando || pushPendente) return;
+  try {
+    const cloud = await pull(); const novo = snapshotDe(cloud);
+    if (canon(novo) !== canon(enviado)) { aplicar(cloud); toast('Atualizado com as mudanças de outro aparelho'); }
+  } catch (e) {}
+}
+window.addEventListener('focus', atualizarDaNuvem);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) atualizarDaNuvem(); });
+sincronizarInicial();
 </script>
 </body>
 </html>
