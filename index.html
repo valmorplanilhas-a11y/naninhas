@@ -352,7 +352,7 @@ const defaultInsumos = () => [
   { id:'i5', nome:'Botão de pressão (caixinha)',      custo:33,   rende:200, obs:'' },
 ];
 let chave = localStorage.getItem('naninhas-chave') || '';
-let nuvemPronta = false, enviado = {}, enviando = false, pushT = null, pushPendente = false;
+let nuvemPronta = false, recusouEnvio = false, enviado = {}, enviando = false, pushT = null, pushPendente = false;
 let state = load();
 let sortBy = { key: 'totalHora', dir: -1 };   // resumo abre pela última coluna, do maior para o menor
 const CATEGORIAS = ['Naninha','Dado','Travesseiro','Toalha de boca','Prendedor de chupeta','Babeiro','Kit touca','Outro'];
@@ -1101,7 +1101,7 @@ async function sincronizarInicial(){
     await api('ajustes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ id: 'config', dados: state.config }]) });
     const nomes = state.products.map(p => p.nome).join(', ');
     if (!confirm(`A nuvem ainda está vazia. Enviar as ${state.products.length} peças deste aparelho para a nuvem?\n\n${nomes}\n\nSe o cadastro completo está em outro navegador, clique em Cancelar e abra a página lá.`)) {
-      syncStatus('Nuvem vazia · abra no navegador que tem o cadastro', 'err'); return;
+      recusouEnvio = true; syncStatus('Nuvem vazia · abra no navegador que tem o cadastro', 'err'); return;
     }
     nuvemPronta = true; enviado = {}; agendarPush(0);   // primeira vez: manda tudo que está neste aparelho
   } catch (e) {
@@ -1110,7 +1110,12 @@ async function sincronizarInicial(){
   }
 }
 async function atualizarDaNuvem(){
-  if (!nuvemPronta) { if (chave && !enviando) sincronizarInicial(); return; }
+  if (!nuvemPronta) {
+    if (!chave || enviando) return;
+    if (!recusouEnvio) return sincronizarInicial();
+    try { const cloud = await pull(); if (cloud.pecas.length) { aplicar(cloud); nuvemPronta = true; syncStatus('Sincronizado', 'ok'); } } catch (e) {}
+    return;
+  }
   if (enviando || pushPendente) return;
   try {
     const cloud = await pull(); const novo = snapshotDe(cloud);
